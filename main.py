@@ -32,8 +32,8 @@ def init_params():
 
     return W1, b1, W2, b2, W3, b3 
 
-def relu(Z):
-    return np.maximum(0, Z)
+def LeakyRelu(Z):
+    return np.where(Z>0, Z, 0.01*Z)
 
 def softmax(Z):
     return np.exp(Z) / sum(np.exp(Z))
@@ -41,15 +41,15 @@ def softmax(Z):
 
 def forward_propagation(W1, b1, W2, b2, W3, b3, X):
     Z1 = W1.dot(X) + b1
-    A1 = relu(Z1)
+    A1 = LeakyRelu(Z1)
     Z2 = W2.dot(A1) + b2
-    A2 = relu(Z2)
+    A2 = LeakyRelu(Z2)
     Z3 = W3.dot(A2) + b3
     A3 = softmax(Z3)
     return Z1, A1, Z2, A2, Z3, A3
 
 def one_hot(Y):
-    one_hot_Y = np.zeros((Y.size, Y.max() + 1))
+    one_hot_Y = np.zeros((Y.size, 10))
     one_hot_Y[np.arange(Y.size), Y] = 1
     return one_hot_Y.T
 
@@ -57,7 +57,8 @@ def derivative_Relu(Z):
     return Z > 0
 
 def back_propagation(Z1, A1, Z2, A2, Z3, A3, W3, W2, X, Y):
-    #m = Y.size
+    # m is batch size
+    m = X.shape[1]
     one_hot_Y = one_hot(Y)
     dZ3 = A3 - one_hot_Y
     dW3 = 1/m * dZ3.dot(A2.T)
@@ -87,21 +88,42 @@ def get_predictions(A2):
 def get_accuracy(predictions, Y):
     return np.sum(predictions == Y) / Y.size
 
-def gradient_descent(X, Y, iterations, alpha):
+def gradient_descent(X, Y, epochs, alpha, batch_size):
     W1, b1, W2, b2, W3, b3 = init_params()
-    for i in range(iterations+ 1):
-        Z1, A1, Z2, A2, Z3, A3 = forward_propagation(W1, b1, W2, b2, W3, b3, X)
-        dW1, db1, dW2, db2, dW3, db3 = back_propagation(Z1, A1, Z2, A2, Z3, A3, W3, W2, X, Y)
-        W1, b1, W2, b2, W3, b3 = update_params(W1, b1, W2, b2, W3, b3, dW1, db1, dW2, db2, dW3, db3, alpha)
+    m = X.shape[1]
+    for i in range(1, epochs+ 1):
+        indices = np.random.permutation(m)
+        X_shuffled = X[:, indices]
+        Y_shuffled = Y[indices]
 
-        if i % 10 == 0:
-            print("Iteration: ", i)
-            print("Accuracy: ", get_accuracy(get_predictions(A3), Y))
+        for j in range(0, m, batch_size):
+            X_batch = X_shuffled[:, j:j+batch_size]
+            Y_batch = Y_shuffled[j:j+batch_size]
+            Z1, A1, Z2, A2, Z3, A3 = forward_propagation(W1, b1, W2, b2, W3, b3, X_batch)
+            dW1, db1, dW2, db2, dW3, db3 = back_propagation(Z1, A1, Z2, A2, Z3, A3, W3, W2, X_batch, Y_batch)
+            W1, b1, W2, b2, W3, b3 = update_params(W1, b1, W2, b2, W3, b3, dW1, db1, dW2, db2, dW3, db3, alpha)
+
+        _, _, _, _, _, A3 = forward_propagation(W1, b1, W2, b2, W3, b3, X)
+        print("epoch: ", i)
+        print("Accuracy: ", get_accuracy(get_predictions(A3), Y))
     
     return W1, b1, W2, b2, W3, b3
 
-W1, b1, W2, b2, W3, b3 = gradient_descent(X_train, Y_train, 300, 0.1)
+W1, b1, W2, b2, W3, b3 = gradient_descent(X_train, Y_train, 50, 0.1, 32)
 
+# TESTING ON THE TEST DATA
+
+data_test = pd.read_csv('./mnist_test.csv')
+data_test = np.array(data_test)
+m_test, n_test = data_test.shape
+
+Y_test = data_test[:,0]
+X_test = data_test[:, 1:n_test]
+X_test = X_test.T / 255
+
+_, _, _, _, _, A3 = forward_propagation(W1, b1, W2, b2, W3, b3, X_test)
+print("TEST DATA")
+print("Accuracy: ", get_accuracy(get_predictions(A3), Y_test))
 
 def make_predictions(X, W1, b1, W2, b2, W3, b3):
     _, _, _, _, _, A3 = forward_propagation(W1, b1, W2, b2, W3, b3, X)
@@ -109,9 +131,9 @@ def make_predictions(X, W1, b1, W2, b2, W3, b3):
     return predictions
 
 def test_predictions(index, W1, b1, W2, b2, W3, b3):
-    current_img = X_train[:, index, None]
-    prediction = make_predictions(X_train[:, index, None], W1, b1, W2, b2, W3, b3)
-    label = Y_train[index]
+    current_img = X_test[:, index, None]
+    prediction = make_predictions(X_test[:, index, None], W1, b1, W2, b2, W3, b3)
+    label = Y_test[index]
     print("Prediciton: ", prediction)
     print("Label: ", label)
 
