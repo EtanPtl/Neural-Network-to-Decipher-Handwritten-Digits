@@ -109,7 +109,8 @@ def gradient_descent(X, Y, epochs, alpha, batch_size):
     
     return W1, b1, W2, b2, W3, b3
 
-W1, b1, W2, b2, W3, b3 = gradient_descent(X_train, Y_train, 50, 0.1, 32)
+W1, b1, W2, b2, W3, b3 = gradient_descent(X_train, Y_train, 5, 0.1, 32)
+
 
 # TESTING ON THE TEST DATA
 
@@ -120,6 +121,7 @@ m_test, n_test = data_test.shape
 Y_test = data_test[:,0]
 X_test = data_test[:, 1:n_test]
 X_test = X_test.T / 255
+
 
 _, _, _, _, _, A3 = forward_propagation(W1, b1, W2, b2, W3, b3, X_test)
 print("TEST DATA")
@@ -134,16 +136,15 @@ def test_predictions(index, W1, b1, W2, b2, W3, b3):
     current_img = X_test[:, index, None]
     prediction = make_predictions(X_test[:, index, None], W1, b1, W2, b2, W3, b3)
     label = Y_test[index]
+
     print("Prediciton: ", prediction)
     print("Label: ", label)
-
     current_img = current_img.reshape((28, 28)) * 255
     plt.gray()
     plt.imshow(current_img, interpolation='nearest')
     plt.show()
+    
 
-test_predictions(0, W1, b1, W2, b2, W3, b3)
-test_predictions(1, W1, b1, W2, b2, W3, b3)
-test_predictions(2, W1, b1, W2, b2, W3, b3)
-test_predictions(3, W1, b1, W2, b2, W3, b3)
-test_predictions(4, W1, b1, W2, b2, W3, b3)
+for i in range(5):
+    n = np.random.rand()
+    test_predictions(i, W1, b1, W2, b2, W3, b3)
